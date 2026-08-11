@@ -1,0 +1,151 @@
+/* Carrousel des pages adresse.
+   Deux usages : le héros (plein cadre, sans commande) et la galerie (scène
+   avec flèches et repères). Fondu court : on sent la transition, on ne
+   l’attend pas. */
+
+.heroStage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.root {
+  padding: 56px 24px 0;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: #141414;
+  outline-offset: 4px;
+}
+
+.frame {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  /* Durées pilotées par le composant : le héros va deux fois plus vite. */
+  transition: opacity var(--carousel-fade, 600ms) var(--ease-quart-out);
+  will-change: opacity;
+}
+
+.frameActive {
+  opacity: 1;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 45%;
+  /* Respiration très légère, calée sur la durée d’affichage. */
+  transform: scale(1.012);
+  transition: transform var(--carousel-cycle, 3600ms) linear;
+}
+
+.frameActive .image {
+  transform: scale(1);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  max-width: 980px;
+  margin: 18px auto 0;
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.5;
+  transition: opacity 250ms var(--ease-quart-out);
+}
+
+.arrow:hover,
+.arrow:focus-visible {
+  opacity: 1;
+}
+
+.arrow svg {
+  width: 15px;
+  height: 15px;
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dot {
+  width: 20px;
+  height: 1px;
+  padding: 0;
+  background: rgba(213, 212, 212, 0.28);
+  transition: background-color 250ms var(--ease-quart-out);
+}
+
+.dot:hover {
+  background: rgba(213, 212, 212, 0.65);
+}
+
+.dotActive {
+  background: var(--warm-white);
+}
+
+.caption {
+  max-width: 980px;
+  margin: 14px auto 0;
+  font-family: "Gotham", Arial, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  opacity: 0.5;
+}
+
+@media (min-width: 700px) {
+  .root {
+    padding: 72px 40px 0;
+  }
+
+  /* Photos et clips sont tous verticaux : une scène portrait, calée sur la
+     hauteur, évite le recadrage brutal d’un cadre paysage. */
+  .stage {
+    height: min(74vh, 800px);
+    width: auto;
+    max-width: 100%;
+    aspect-ratio: 4 / 5;
+  }
+}
+
+@media (min-width: 1100px) {
+  .root {
+    padding: 88px 56px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame,
+  .image,
+  .arrow,
+  .dot {
+    transition: none;
+  }
+
+  .image,
+  .frameActive .image {
+    transform: none;
+  }
+}

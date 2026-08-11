@@ -1,0 +1,189 @@
+/* Page adresse. Le body du site est en overflow:hidden (l’accueil est une
+   expérience plein écran fixe) : on ouvre donc le défilement ici, dans un
+   conteneur propre à la page, sans toucher au global. */
+.root {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--black);
+  color: var(--warm-white);
+  -webkit-overflow-scrolling: touch;
+}
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  background: linear-gradient(to bottom, rgba(13, 13, 13, 0.92), rgba(13, 13, 13, 0));
+}
+
+.wordmark {
+  width: 132px;
+  height: auto;
+}
+
+.barLink {
+  font-family: "Gotham", Arial, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.barLink:hover {
+  opacity: 0.7;
+}
+
+/* Hero — les photos fournies sont toutes en portrait : on cadre en cover
+   sur une hauteur généreuse plutôt qu’un bandeau large qui les massacrerait.
+   Le contenu est un carrousel en fondu (RestaurantCarousel, variante hero). */
+.hero {
+  position: relative;
+  height: min(92vh, 900px);
+  margin-top: -74px;
+  overflow: hidden;
+}
+
+.heroVeil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 13, 13, 0.55) 0%,
+    rgba(13, 13, 13, 0.1) 38%,
+    rgba(13, 13, 13, 0.85) 88%,
+    var(--black) 100%
+  );
+}
+
+.heroText {
+  position: absolute;
+  right: 24px;
+  bottom: 48px;
+  left: 24px;
+  text-align: center;
+}
+
+.name {
+  font-family: "Corniche Display", Arial, serif;
+  font-size: clamp(44px, 11vw, 128px);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tagline {
+  margin-top: 18px;
+  font-family: "Gotham", Arial, sans-serif;
+  font-size: clamp(11px, 2.4vw, 14px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.body {
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 56px 24px 8px;
+}
+
+.paragraph {
+  font-family: "Gotham", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.85;
+  opacity: 0.86;
+}
+
+.paragraph + .paragraph {
+  margin-top: 20px;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(213, 212, 212, 0.18);
+}
+
+.factLabel {
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.factValue {
+  margin-top: 6px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+.reserve {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 36px;
+  padding: 13px 34px;
+  border: 1px solid rgba(213, 212, 212, 0.55);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  transition: background-color 0.25s var(--ease-quart-out), color 0.25s var(--ease-quart-out);
+}
+
+.reserve:hover {
+  background: var(--warm-white);
+  color: var(--black);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 72px 24px 64px;
+}
+
+.footerLink {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.footerLink:hover {
+  opacity: 1;
+}
+
+@media (min-width: 700px) {
+  .bar {
+    padding: 22px 40px;
+  }
+
+  .body {
+    padding: 72px 40px 8px;
+  }
+
+  .footer {
+    padding: 88px 40px 72px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .heroText {
+    bottom: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reserve {
+    transition: none;
+  }
+}

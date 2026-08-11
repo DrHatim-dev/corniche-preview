@@ -1,0 +1,38 @@
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 55;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  visibility: hidden;
+  border: 2px solid var(--warm-white);
+  border-radius: 999px;
+  mix-blend-mode: difference;
+  transform: translate3d(-50%, -50%, 0) scale(0.75);
+  transition:
+    opacity 180ms linear,
+    transform 300ms var(--ease-quart-out);
+  will-change: transform;
+}
+
+.visible {
+  visibility: visible;
+}
+
+.active {
+  transform: translate3d(-50%, -50%, 0) scale(1);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .cursor {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    display: none;
+  }
+}

@@ -1,0 +1,38 @@
+.header {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+}
+
+.inner {
+  position: absolute;
+  right: 30px;
+  bottom: 30px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.link {
+  width: 120px;
+  pointer-events: auto;
+}
+
+.logo {
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 768px) {
+  .link {
+    width: 150px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .inner {
+    right: 110px;
+    bottom: 88px;
+    left: 150px;
+  }
+}

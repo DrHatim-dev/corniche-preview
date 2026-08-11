@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Gotham";
+  src: url("/fonts/gotham-light.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gotham";
+  src: url("/fonts/gotham-book.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Corniche Display";
+  src: url("/fonts/corniche-display.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ITC Avant Garde Gothic";
+  src: url("/fonts/itc-avant-garde.woff") format("woff");
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ITC Avant Garde Gothic";
+  src: url("/fonts/itc-avant-garde-medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  --black: #0d0d0d;
+  --warm-white: #d5d4d4;
+  --primary-color: #051528;
+  --secondary-color: #262d39;
+  --header-primary-color: #051528;
+  --ease-quart-out: cubic-bezier(0.26, 1.04, 0.54, 1);
+  --ease-expo-out: cubic-bezier(0.16, 1.08, 0.38, 0.98);
+  --ease-quint-out: cubic-bezier(0.22, 1.1, 0.48, 1);
+  --ease-quint-in-out: cubic-bezier(0.84, 0, 0.16, 1);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--black);
+  color: var(--warm-white);
+  overscroll-behavior: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: var(--black);
+  color: var(--warm-white);
+  font-family: "Gotham", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+button,
+a {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+img,
+video,
+svg {
+  display: block;
+}
+
+ul,
+ol,
+p,
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  padding: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+.heading-like {
+  font-family: "Corniche Display", Arial, serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  white-space: pre-line;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.grain-surface {
+  background-color: var(--secondary-color);
+  background-image: url("/assets/corniche/library/corniche-global/996-motifcorniche-01.png");
+  background-repeat: repeat;
+  background-size: 300px 300px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  *,
+  *::before,
+  *::after {
+    cursor: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Le curseur maison ne s’active pas en mouvement réduit : on rend la main
+     au pointeur système, sinon il n’y a plus de curseur du tout. */
+  *,
+  *::before,
+  *::after {
+    cursor: revert !important;
+  }
+}
