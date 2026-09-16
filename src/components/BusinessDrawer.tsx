@@ -90,6 +90,7 @@ export function BusinessDrawer({
     initialDetail,
   );
   const [isClosing, setIsClosing] = useState(false);
+  const [entered, setEntered] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closingRef = useRef(false);
   const onCloseRef = useRef(onClose);
@@ -117,8 +118,19 @@ export function BusinessDrawer({
 
     closeTimerRef.current = setTimeout(
       () => onCloseRef.current(),
-      reduceMotion ? 0 : 800,
+      reduceMotion ? 0 : 220,
     );
+  }, []);
+
+  useEffect(() => {
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => setEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+    };
   }, []);
 
   useEffect(() => {
@@ -204,6 +216,7 @@ export function BusinessDrawer({
   return (
     <div
       className={`${styles.root}${isClosing ? ` ${styles.closing}` : ""}`}
+      data-entered={entered || undefined}
       style={drawerStyle}
     >
       <div

@@ -9,8 +9,12 @@ import {
   type CSSProperties,
 } from "react";
 import styles from "./IntroOverlay.module.css";
+import useDecodedMediaIndex from "@/hooks/useDecodedMediaIndex";
+import useMotionEnvironment from "@/hooks/useMotionEnvironment";
+import { imageUrl, videoUrl } from "@/lib/media";
 
 export interface IntroOverlayProps {
+  onPrepareExit: () => void;
   onComplete: () => void;
 }
 
@@ -47,8 +51,8 @@ const HERO_VIDEOS = [
   },
 ] as const;
 
-const HERO_INTERVAL_MS = 3200;
-const HERO_CROSSFADE_MS = 620;
+const HERO_INTERVAL_MS = 4800;
+const HERO_CROSSFADE_MS = 360;
 
 const TITLE_GROUPS = [
   { text: "Corniche", weight: "medium" },
@@ -101,12 +105,20 @@ const styleWithIndex = (
   index: number,
 ) => ({ [property]: index } as CSSProperties);
 
-export function IntroOverlay({ onComplete }: IntroOverlayProps) {
+export function IntroOverlay({ onComplete, onPrepareExit }: IntroOverlayProps) {
   const [entered, setEntered] = useState(false);
   const [leaving, setLeaving] = useState(false);
   // Index piloté ici (et non par useRotatingMedia) pour que la flèche
   // relance le compte à rebours au lieu de couper un clip en deux.
-  const [heroIndex, setHeroIndex] = useState(0);
+  const [requestedHeroIndex, setHeroIndex] = useState(0);
+  const { reducedMotion, visible, saveData } = useMotionEnvironment();
+  const [videoReady, setVideoReady] = useState(false);
+  const heroIndex = useDecodedMediaIndex(
+    requestedHeroIndex,
+    HERO_VIDEOS.map((video) => video.poster),
+    visible && !leaving,
+    { sizes: "540px", preloadNext: !saveData && !reducedMotion },
+  );
   const [heroLayers, setHeroLayers] = useState<{
     current: number;
     outgoing: number | null;
@@ -116,6 +128,20 @@ export function IntroOverlay({ onComplete }: IntroOverlayProps) {
   const activatedRef = useRef(false);
   const completeTimerRef = useRef<number | null>(null);
   const onCompleteRef = useRef(onComplete);
+  const prepareExitRef = useRef(onPrepareExit);
+  prepareExitRef.current = onPrepareExit;
+
+  useEffect(() => {
+    if (reducedMotion || saveData || !visible || leaving) return;
+    let timer = 0;
+    const schedule = () => { timer = window.setTimeout(() => setVideoReady(true), 700); };
+    if (document.readyState === "complete") schedule();
+    else window.addEventListener("load", schedule, { once: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("load", schedule);
+    };
+  }, [reducedMotion, saveData, visible, leaving]);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -128,25 +154,25 @@ export function IntroOverlay({ onComplete }: IntroOverlayProps) {
   // Défilement automatique, remis à zéro à chaque changement (donc au clic
   // sur la flèche). Rien ne tourne si l’onglet est masqué.
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (reducedMotion || saveData || !visible || leaving || heroIndex !== requestedHeroIndex) return;
     const timer = window.setTimeout(() => {
       if (!document.hidden) goToNextHero();
     }, HERO_INTERVAL_MS);
     return () => window.clearTimeout(timer);
-  }, [heroIndex, goToNextHero]);
+  }, [heroIndex, requestedHeroIndex, goToNextHero, reducedMotion, saveData, visible, leaving]);
 
   // Seul le clip affiché tourne.
   useEffect(() => {
     videoRefs.current.forEach((video, index) => {
       if (!video) return;
-      if (index === heroIndex) {
+      if (index === heroIndex && videoReady && !reducedMotion && !saveData && visible && !leaving) {
         const attempt = video.play();
         if (attempt) attempt.catch(() => undefined);
       } else {
         video.pause();
       }
     });
-  }, [heroIndex, heroLayers]);
+  }, [heroIndex, heroLayers, videoReady, reducedMotion, saveData, visible, leaving]);
 
   useEffect(() => {
     if (heroIndex === displayedHeroIndexRef.current) {
@@ -204,6 +230,7 @@ export function IntroOverlay({ onComplete }: IntroOverlayProps) {
     }
 
     activatedRef.current = true;
+    prepareExitRef.current();
     setLeaving(true);
 
     const reducedMotion = window.matchMedia(
@@ -212,7 +239,7 @@ export function IntroOverlay({ onComplete }: IntroOverlayProps) {
 
     completeTimerRef.current = window.setTimeout(
       () => onCompleteRef.current(),
-      reducedMotion ? 160 : 520,
+      reducedMotion ? 160 : 360,
     );
   }, []);
 
@@ -294,7 +321,7 @@ export function IntroOverlay({ onComplete }: IntroOverlayProps) {
         {/* Brume : l’affiche du clip, floutée, qui habille toute la largeur. */}
         <img
           className={styles.posterBlur}
-          src={media.poster}
+          src={imageUrl(media.poster, 320)}
           alt=""
           aria-hidden="true"
           draggable={false}
@@ -310,12 +337,12 @@ export function IntroOverlay({ onComplete }: IntroOverlayProps) {
             ref={(node) => {
               videoRefs.current[index] = node;
             }}
-            src={media.src}
-            poster={media.poster}
+            src={videoReady && !reducedMotion && !saveData ? videoUrl(media.src) : undefined}
+            poster={imageUrl(media.poster, 640)}
             muted
             loop
             playsInline
-            preload={index === 0 ? "metadata" : "none"}
+            preload="none"
             aria-hidden="true"
           />
         </div>

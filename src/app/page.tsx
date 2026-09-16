@@ -14,6 +14,7 @@ import type { Destination, DrawerKind } from "@/types/home";
 
 export default function HomePage() {
   const [introComplete, setIntroComplete] = useState(false);
+  const [mediaEnabled, setMediaEnabled] = useState(false);
   const [activeDestination, setActiveDestination] = useState<Destination>(
     DESTINATIONS[0],
   );
@@ -51,6 +52,7 @@ export default function HomePage() {
   return (
     <>
       <DestinationCarousel
+        mediaEnabled={mediaEnabled || introComplete}
         interactionLocked={!introComplete || drawer !== null}
         onActiveChange={handleActiveChange}
       />
@@ -69,7 +71,10 @@ export default function HomePage() {
         />
       ) : null}
       {!introComplete ? (
-        <IntroOverlay onComplete={() => setIntroComplete(true)} />
+        <IntroOverlay
+          onPrepareExit={() => setMediaEnabled(true)}
+          onComplete={() => setIntroComplete(true)}
+        />
       ) : null}
       <CustomCursor />
     </>

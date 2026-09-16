@@ -12,17 +12,20 @@ import {
 } from "react";
 import { experiences } from "@/content/corniche";
 import useRotatingMedia from "@/hooks/useRotatingMedia";
+import useDecodedMediaIndex from "@/hooks/useDecodedMediaIndex";
+import useMotionEnvironment from "@/hooks/useMotionEnvironment";
+import ResponsiveImage from "./ResponsiveImage";
+import { imageUrl, destinationImageSizes } from "@/lib/media";
 import type { Destination } from "@/types/home";
 import styles from "./DestinationCarousel.module.css";
 
-const WHEEL_FACTOR = -0.0005;
-const TOUCH_FACTOR = 0.001;
+const WHEEL_SPEED = 1.25;
 // Rythme resserré : le carrousel doit se lire vite, y compris à l'écran
 // pendant une démo. Le défilement reste amorti, simplement plus nerveux.
 const DAMPING = 11;
 const REDUCED_WHEEL_INTERVAL = 140;
-const MEDIA_ROTATION_INTERVAL = 2600;
-const MEDIA_CROSSFADE_DURATION = 480;
+const MEDIA_ROTATION_INTERVAL = 4200;
+const MEDIA_CROSSFADE_DURATION = 300;
 
 export const DESTINATIONS: readonly Destination[] = experiences.map(
   ({
@@ -55,6 +58,7 @@ export const DESTINATIONS: readonly Destination[] = experiences.map(
 );
 
 export interface DestinationCarouselProps {
+  mediaEnabled: boolean;
   interactionLocked: boolean;
   onActiveChange: (index: number, destination: Destination) => void;
 }
@@ -82,24 +86,35 @@ const wrap = (value: number, minimum: number, maximum: number) => {
 };
 
 interface DestinationMediaProps {
+  enabled: boolean;
   destination: Destination;
   destinationIndex: number;
   active: boolean;
+  outgoing: boolean;
   preload: boolean;
   rotationEnabled: boolean;
 }
 
 function DestinationMedia({
+  enabled,
   destination,
   destinationIndex,
   active,
+  outgoing,
   preload,
   rotationEnabled,
 }: DestinationMediaProps) {
-  const currentIndex = useRotatingMedia(
+  const { saveData } = useMotionEnvironment();
+  const requestedIndex = useRotatingMedia(
     destination.gallery.length,
     MEDIA_ROTATION_INTERVAL,
     rotationEnabled,
+  );
+  const currentIndex = useDecodedMediaIndex(
+    requestedIndex,
+    destination.gallery.map((frame) => frame.src),
+    enabled && (active || preload),
+    { sizes: destinationImageSizes, preloadNext: active && rotationEnabled && !saveData },
   );
   const previousIndexRef = useRef(0);
   const [outgoingIndex, setOutgoingIndex] = useState<number | null>(null);
@@ -127,14 +142,14 @@ function DestinationMedia({
     return () => window.clearTimeout(timeout);
   }, [active, currentIndex, rotationEnabled]);
 
-  const visibleIndex = active ? currentIndex : 0;
+  const visibleIndex = currentIndex;
   const currentFrame = destination.gallery[visibleIndex];
   const outgoingFrame =
     active && outgoingIndex !== null
       ? destination.gallery[outgoingIndex]
       : null;
   const isInternalTransition = outgoingFrame !== null;
-  const shouldRenderFrame = active || preload;
+  const shouldRenderFrame = enabled && (active || outgoing || preload);
   const mediaStyle: MediaStyle = {
     "--frame-primary": destination.primary,
     "--frame-secondary": destination.secondary,
@@ -144,10 +159,12 @@ function DestinationMedia({
     <li
       className={styles.imageItem}
       data-active={active || undefined}
+      data-outgoing={outgoing || undefined}
       style={mediaStyle}
     >
       {shouldRenderFrame && outgoingFrame ? (
         <span
+          key={`outgoing-${outgoingIndex}`}
           aria-hidden="true"
           className={styles.mediaFrame}
           data-fit={outgoingFrame.fit ?? "cover"}
@@ -161,10 +178,10 @@ function DestinationMedia({
               decoding="async"
               draggable={false}
               loading="lazy"
-              src={outgoingFrame.src}
+              src={imageUrl(outgoingFrame.src, 320)}
             />
           ) : null}
-          <img
+          <ResponsiveImage
             alt=""
             aria-hidden="true"
             className={styles.image}
@@ -172,6 +189,7 @@ function DestinationMedia({
             draggable={false}
             loading="lazy"
             src={outgoingFrame.src}
+            sizes={destinationImageSizes(outgoingFrame.src)}
             style={{ objectPosition: outgoingFrame.position }}
           />
         </span>
@@ -179,6 +197,7 @@ function DestinationMedia({
 
       {shouldRenderFrame ? (
         <span
+          key={`current-${visibleIndex}`}
           aria-hidden={active ? undefined : true}
           className={styles.mediaFrame}
           data-fit={currentFrame.fit ?? "cover"}
@@ -198,10 +217,10 @@ function DestinationMedia({
               decoding="async"
               draggable={false}
               loading="lazy"
-              src={currentFrame.src}
+              src={imageUrl(currentFrame.src, 320)}
             />
           ) : null}
-          <img
+          <ResponsiveImage
             alt={active ? currentFrame.alt : ""}
             aria-hidden={active ? undefined : true}
             className={styles.image}
@@ -210,12 +229,9 @@ function DestinationMedia({
             fetchPriority={
               destinationIndex === 0 && visibleIndex === 0 ? "high" : "auto"
             }
-            loading={
-              active && destinationIndex === 0 && visibleIndex === 0
-                ? "eager"
-                : "lazy"
-            }
+            loading="eager"
             src={currentFrame.src}
+            sizes={destinationImageSizes(currentFrame.src)}
             style={{ objectPosition: currentFrame.position }}
           />
         </span>
@@ -225,6 +241,7 @@ function DestinationMedia({
 }
 
 export function DestinationCarousel({
+  mediaEnabled,
   interactionLocked,
   onActiveChange,
 }: DestinationCarouselProps) {
@@ -236,19 +253,36 @@ export function DestinationCarousel({
   const currentProgressRef = useRef(0);
   const reducedMotionRef = useRef(false);
   const applyProgressRef = useRef<(progress: number) => void>(() => undefined);
+  const wakeRef = useRef<() => void>(() => undefined);
   const activeIndexRef = useRef(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [outgoingDestination, setOutgoingDestination] = useState<number | null>(null);
+  const previousDestinationRef = useRef(0);
+
+  useLayoutEffect(() => {
+    if (previousDestinationRef.current === activeIndex) return;
+    setOutgoingDestination(previousDestinationRef.current);
+    previousDestinationRef.current = activeIndex;
+    const timer = window.setTimeout(() => setOutgoingDestination(null), 300);
+    return () => window.clearTimeout(timer);
+  }, [activeIndex]);
+
+  useEffect(() => {
+    if (interactionLocked) targetProgressRef.current = currentProgressRef.current;
+  }, [interactionLocked]);
 
   callbackRef.current = onActiveChange;
   lockedRef.current = interactionLocked;
 
   const moveByOne = useCallback((direction: 1 | -1) => {
-    targetProgressRef.current -= direction / DESTINATIONS.length;
+    targetProgressRef.current =
+      (Math.round(targetProgressRef.current * DESTINATIONS.length) - direction) / DESTINATIONS.length;
 
     if (reducedMotionRef.current) {
       currentProgressRef.current = targetProgressRef.current;
       applyProgressRef.current(currentProgressRef.current);
     }
+    wakeRef.current();
   }, []);
 
   useEffect(() => {
@@ -266,6 +300,9 @@ export function DestinationCarousel({
     let itemHeight = firstItem.getBoundingClientRect().height;
     let viewportHeight = root.clientHeight;
     let frame = 0;
+    let snapTimer = 0;
+    let snapDirection = 0;
+    let disposed = false;
     let previousFrameTime = performance.now();
     let touchY: number | null = null;
     let reducedTouchDistance = 0;
@@ -297,8 +334,8 @@ export function DestinationCarousel({
           return;
         }
 
-        const y = wrap(
-          centerOffset + index * itemHeight + trackOffset,
+        const y = centerOffset + wrap(
+          index * itemHeight + trackOffset,
           -halfTrack,
           halfTrack,
         );
@@ -316,6 +353,22 @@ export function DestinationCarousel({
 
     applyProgressRef.current = applyProgress;
 
+    const wake = () => {
+      if (frame || lockedRef.current || reducedMotionRef.current || document.hidden) return;
+      previousFrameTime = performance.now();
+      frame = window.requestAnimationFrame(tick);
+    };
+    wakeRef.current = wake;
+
+    const snap = () => {
+      const position = targetProgressRef.current * DESTINATIONS.length;
+      // Preserve the intent of a wheel notch or swipe without forcing tiny gestures.
+      const step = snapDirection > 0 ? Math.ceil(position - 0.12)
+        : snapDirection < 0 ? Math.floor(position + 0.12) : Math.round(position);
+      targetProgressRef.current = step / DESTINATIONS.length;
+      wake();
+    };
+
     const measure = () => {
       viewportHeight = root.clientHeight || window.innerHeight;
       itemHeight =
@@ -331,6 +384,9 @@ export function DestinationCarousel({
 
     const onReducedMotionChange = (event: MediaQueryListEvent) => {
       reducedMotionRef.current = event.matches;
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(snapTimer);
+      frame = 0;
 
       if (event.matches) {
         const snappedProgress =
@@ -365,7 +421,13 @@ export function DestinationCarousel({
         return;
       }
 
-      targetProgressRef.current += event.deltaY * WHEEL_FACTOR;
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewportHeight : 1;
+      const delta = Math.max(-240, Math.min(event.deltaY * unit, 240));
+      snapDirection = Math.sign(-delta);
+      targetProgressRef.current -= delta * WHEEL_SPEED / (itemHeight * DESTINATIONS.length);
+      window.clearTimeout(snapTimer);
+      snapTimer = window.setTimeout(snap, 160);
+      wake();
     };
 
     const onTouchStart = (event: TouchEvent) => {
@@ -375,6 +437,8 @@ export function DestinationCarousel({
       }
 
       touchY = event.touches[0].clientY;
+      snapDirection = 0;
+      window.clearTimeout(snapTimer);
       reducedTouchDistance = 0;
     };
 
@@ -399,7 +463,9 @@ export function DestinationCarousel({
       if (reducedMotionRef.current) {
         reducedTouchDistance += deltaY;
       } else {
-        targetProgressRef.current += deltaY * TOUCH_FACTOR;
+        targetProgressRef.current += deltaY / (itemHeight * DESTINATIONS.length);
+        snapDirection = Math.sign(deltaY);
+        wake();
       }
     };
 
@@ -414,9 +480,12 @@ export function DestinationCarousel({
 
       touchY = null;
       reducedTouchDistance = 0;
+      if (!reducedMotionRef.current && !lockedRef.current) snap();
     };
 
     const tick = (time: number) => {
+      frame = 0;
+      if (lockedRef.current || document.hidden || reducedMotionRef.current) return;
       const deltaTime = Math.min(
         Math.max((time - previousFrameTime) / 1000, 0),
         0.1,
@@ -430,14 +499,23 @@ export function DestinationCarousel({
 
         currentProgressRef.current += distance * dampingFactor;
 
-        if (Math.abs(distance) < 0.000001) {
+        if (Math.abs(distance) < 0.00001) {
           currentProgressRef.current = targetProgressRef.current;
+          applyProgress(currentProgressRef.current);
+          return;
         }
 
         applyProgress(currentProgressRef.current);
       }
 
       frame = window.requestAnimationFrame(tick);
+    };
+
+    const onVisibilityChange = () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(snapTimer);
+      frame = 0;
+      targetProgressRef.current = currentProgressRef.current;
     };
 
     const resizeObserver =
@@ -454,9 +532,12 @@ export function DestinationCarousel({
     window.addEventListener("touchend", onTouchEnd, { passive: true });
     window.addEventListener("touchcancel", onTouchEnd, { passive: true });
     reducedMotionQuery.addEventListener("change", onReducedMotionChange);
-    frame = window.requestAnimationFrame(tick);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    document.fonts.ready.then(() => { if (!disposed) measure(); });
 
     return () => {
+      disposed = true;
+      window.clearTimeout(snapTimer);
       window.cancelAnimationFrame(frame);
       resizeObserver?.disconnect();
       window.removeEventListener("resize", measure);
@@ -465,11 +546,13 @@ export function DestinationCarousel({
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
       window.removeEventListener("touchcancel", onTouchEnd);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       reducedMotionQuery.removeEventListener(
         "change",
         onReducedMotionChange,
       );
       applyProgressRef.current = () => undefined;
+      wakeRef.current = () => undefined;
     };
   }, [moveByOne]);
 
@@ -509,6 +592,17 @@ export function DestinationCarousel({
       style={carouselStyle}
       onKeyDown={onKeyDown}
     >
+      <div className={styles.backgrounds} aria-hidden="true">
+        {DESTINATIONS.map((destination, index) => (
+          <div
+            key={destination.id}
+            className={styles.backgroundLayer}
+            data-active={index === activeIndex || undefined}
+            data-outgoing={index === outgoingDestination || undefined}
+            style={{ backgroundColor: destination.secondary }}
+          />
+        ))}
+      </div>
       <ul className={styles.links}>
         {DESTINATIONS.map((destination, index) => {
           const isActive = index === activeIndex;
@@ -522,6 +616,7 @@ export function DestinationCarousel({
               }}
             >
               <Link
+                prefetch={false}
                 aria-current={isActive ? "page" : undefined}
                 className={styles.link}
                 data-active={isActive || undefined}
@@ -552,7 +647,9 @@ export function DestinationCarousel({
       <ul className={styles.images}>
         {DESTINATIONS.map((destination, index) => (
           <DestinationMedia
+            enabled={mediaEnabled}
             active={index === activeIndex}
+            outgoing={index === outgoingDestination}
             destination={destination}
             destinationIndex={index}
             key={destination.id}

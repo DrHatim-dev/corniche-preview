@@ -9,7 +9,7 @@
   color: #d5d4d4;
   isolation: isolate;
   transform: translate3d(0, 0, 0);
-  transition: transform 520ms cubic-bezier(0.76, 0, 0.24, 1);
+  transition: transform 360ms var(--ease-in-out-cubic);
   will-change: transform;
 }
 
@@ -19,7 +19,7 @@
   z-index: 0;
   overflow: hidden;
   transform: translate3d(0, 0, 0);
-  transition: transform 520ms cubic-bezier(0.76, 0, 0.24, 1);
+  transition: transform 360ms var(--ease-in-out-cubic);
   will-change: transform;
 }
 
@@ -54,7 +54,7 @@
 }
 
 .posterFrameIncoming {
-  animation: poster-crossfade-in 620ms ease-in-out both;
+  animation: poster-crossfade-in 360ms linear both;
 }
 
 .posterFrameOutgoing {
@@ -88,7 +88,6 @@
   object-position: center center;
   filter: blur(64px) saturate(0.78) brightness(0.38);
   transform: scale(1.26);
-  animation: fog-drift 32s ease-in-out infinite;
   user-select: none;
 }
 
@@ -214,8 +213,8 @@
   opacity: 0;
   transform: translate3d(0, -50%, 0);
   transition:
-    opacity 380ms ease 420ms,
-    color 300ms ease;
+    opacity 250ms linear 200ms,
+    color 150ms ease;
 }
 
 .entered .heroArrow {
@@ -271,7 +270,7 @@
   margin-inline: auto;
   flex-direction: column;
   transform: translate3d(0, 0, 0);
-  transition: transform 520ms cubic-bezier(0.76, 0, 0.24, 1);
+  transition: transform 360ms var(--ease-in-out-cubic);
   will-change: transform;
 }
 
@@ -327,10 +326,9 @@
   opacity: 0;
   transform: translate3d(0, 112%, 0);
   transition:
-    transform 480ms var(--ease-quart-out, cubic-bezier(0.26, 1.04, 0.54, 1))
-      calc(var(--reveal-index) * 16ms),
-    opacity 340ms ease-out calc(var(--reveal-index) * 16ms);
-  will-change: transform;
+    transform 300ms var(--ease-quart-out)
+      calc(var(--reveal-index) * 12ms),
+    opacity 200ms linear calc(var(--reveal-index) * 12ms);
 }
 
 .subtitle {
@@ -358,11 +356,10 @@
   opacity: 0;
   transform: translate3d(0, 112%, 0);
   transition:
-    transform 450ms var(--ease-quart-out, cubic-bezier(0.26, 1.04, 0.54, 1))
+    transform 300ms var(--ease-quart-out)
       calc(90ms + var(--reveal-index) * 9ms),
-    opacity 320ms ease-out
+    opacity 200ms linear
       calc(90ms + var(--reveal-index) * 9ms);
-  will-change: transform;
 }
 
 .cta {
@@ -388,12 +385,10 @@
   opacity: 0;
   transform: translate3d(0, 18px, 0);
   transition:
-    color 500ms var(--ease-quart-out, cubic-bezier(0.26, 1.04, 0.54, 1)),
-    background-color 500ms
-      var(--ease-quart-out, cubic-bezier(0.26, 1.04, 0.54, 1)),
-    transform 850ms var(--ease-quart-out, cubic-bezier(0.26, 1.04, 0.54, 1))
-      450ms,
-    opacity 650ms ease-out 450ms;
+    color 150ms ease,
+    background-color 150ms ease,
+    transform 300ms var(--ease-quart-out) 240ms,
+    opacity 200ms linear 240ms;
 }
 
 .cta:disabled {
@@ -424,9 +419,9 @@
   opacity: 0;
   transform: translate3d(0, 20px, 0);
   transition:
-    transform 850ms var(--ease-quart-out, cubic-bezier(0.26, 1.04, 0.54, 1))
-      calc(260ms + var(--partner-index) * 42ms),
-    opacity 300ms ease-out calc(260ms + var(--partner-index) * 42ms);
+    transform 300ms var(--ease-quart-out)
+      calc(180ms + var(--partner-index) * 24ms),
+    opacity 200ms linear calc(180ms + var(--partner-index) * 24ms);
 }
 
 .partner {

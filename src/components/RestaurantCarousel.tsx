@@ -1,17 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { GalleryFrame } from "@/content/restaurants";
 import styles from "./RestaurantCarousel.module.css";
+import useMotionEnvironment from "@/hooks/useMotionEnvironment";
+import useDecodedMediaIndex from "@/hooks/useDecodedMediaIndex";
+import ResponsiveImage from "./ResponsiveImage";
+import { imageUrl, videoUrl, restaurantHeroSizes, restaurantGallerySizes } from "@/lib/media";
 
-// Rythme volontairement rapide : le fondu se voit à peine, l’image suivante
-// arrive avant que l’œil ne s’installe.
-// Le héros défile deux fois plus vite que la galerie : il accroche à l’arrivée,
-// alors que la galerie se regarde.
-const INTERVAL_HERO_MS = 1500;
-const INTERVAL_STAGE_MS = 2400;
-const FADE_HERO_MS = 380;
-const FADE_STAGE_MS = 420;
+// Laisser chaque adresse se lire avant un fondu court, sans flash de fond.
+const INTERVAL_HERO_MS = 4200;
+const INTERVAL_STAGE_MS = 4800;
+const FADE_HERO_MS = 300;
+const FADE_STAGE_MS = 300;
 // Un clip garde la main le temps d’être vu, sans immobiliser la page.
 const VIDEO_HOLD_MS = 6000;
 
@@ -22,29 +23,48 @@ type Props = {
 };
 
 export function RestaurantCarousel({ frames, variant, label }: Props) {
-  const [index, setIndex] = useState(0);
+  const [requestedIndex, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const reducedMotion = useRef(false);
+  const { reducedMotion, visible, saveData } = useMotionEnvironment();
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  const [nearView, setNearView] = useState(variant === "hero");
+  const index = useDecodedMediaIndex(
+    requestedIndex,
+    frames.map((frame) => frame.type === "video" ? frame.poster ?? "" : frame.src),
+    nearView && visible,
+    { sizes: variant === "stage" ? restaurantGallerySizes : restaurantHeroSizes, preloadNext: inView && !saveData && !reducedMotion },
+  );
+  const previousIndex = useRef(0);
+  const [outgoingIndex, setOutgoingIndex] = useState<number | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   const go = useCallback(
     (next: number) => {
-      setIndex((current) => {
-        const total = frames.length;
-        return (next + total) % total;
-      });
+      if (frames.length) setIndex((next + frames.length) % frames.length);
     },
     [frames.length],
   );
 
   useEffect(() => {
-    reducedMotion.current = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+    const warmObserver = new IntersectionObserver(([entry]) => setNearView(entry.isIntersecting), { rootMargin: "240px" });
+    observer.observe(stage);
+    warmObserver.observe(stage);
+    return () => { observer.disconnect(); warmObserver.disconnect(); };
   }, []);
 
   const isStage = variant === "stage";
   const fadeMs = isStage ? FADE_STAGE_MS : FADE_HERO_MS;
+  useLayoutEffect(() => {
+    if (index === previousIndex.current) return;
+    setOutgoingIndex(previousIndex.current);
+    previousIndex.current = index;
+    const timer = window.setTimeout(() => setOutgoingIndex(null), reducedMotion ? 0 : fadeMs);
+    return () => window.clearTimeout(timer);
+  }, [index, fadeMs, reducedMotion]);
   // Un clip a besoin de son temps : on laisse la vidéo se dérouler avant
   // d’enchaîner, alors qu’une photo garde le rythme court.
   const activeIsVideo = frames[index]?.type === "video";
@@ -55,41 +75,41 @@ export function RestaurantCarousel({ frames, variant, label }: Props) {
       : INTERVAL_HERO_MS;
 
   useEffect(() => {
-    if (frames.length < 2 || paused || reducedMotion.current) return;
+    if (frames.length < 2 || paused || reducedMotion || saveData || !visible || !inView || requestedIndex !== index) return;
     const timer = window.setTimeout(() => {
       if (document.hidden) return;
       setIndex((current) => (current + 1) % frames.length);
     }, intervalMs);
     return () => window.clearTimeout(timer);
-  }, [frames.length, paused, intervalMs, index]);
+  }, [frames.length, paused, intervalMs, index, requestedIndex, reducedMotion, saveData, visible, inView]);
 
   // Lecture réservée au cadre actif : rien ne tourne en fond.
   useEffect(() => {
     videoRefs.current.forEach((video, frameIndex) => {
       if (!video) return;
-      if (frameIndex === index && !reducedMotion.current) {
+      if (frameIndex === index && !reducedMotion && !saveData && visible && inView && !paused) {
         const attempt = video.play();
         if (attempt) attempt.catch(() => undefined);
       } else {
         video.pause();
-        video.currentTime = 0;
       }
     });
-  }, [index]);
+  }, [index, reducedMotion, saveData, visible, inView, paused]);
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      go(index + 1);
+      go(requestedIndex + 1);
     }
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      go(index - 1);
+      go(requestedIndex - 1);
     }
   };
 
   const stack = (
     <div
+      ref={stageRef}
       className={isStage ? styles.stage : styles.heroStage}
       style={
         {
@@ -102,26 +122,30 @@ export function RestaurantCarousel({ frames, variant, label }: Props) {
       onMouseEnter={isStage ? () => setPaused(true) : undefined}
       onMouseLeave={isStage ? () => setPaused(false) : undefined}
       onFocus={isStage ? () => setPaused(true) : undefined}
-      onBlur={isStage ? () => setPaused(false) : undefined}
+      onBlur={isStage ? (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
+      } : undefined}
       onKeyDown={isStage ? onKeyDown : undefined}
       tabIndex={isStage ? 0 : undefined}
     >
       {frames.map((frame, frameIndex) => {
         const active = frameIndex === index;
+        const renderMedia = (nearView || !isStage) && (active || frameIndex === outgoingIndex);
         return (
           <div
             className={`${styles.frame} ${active ? styles.frameActive : ""}`}
+            data-outgoing={frameIndex === outgoingIndex || undefined}
             key={frame.src}
             aria-hidden={!active}
           >
-            {frame.type === "video" ? (
+            {renderMedia && (frame.type === "video" ? (
               <video
                 className={styles.image}
                 ref={(node) => {
                   videoRefs.current[frameIndex] = node;
                 }}
-                src={frame.src}
-                poster={frame.poster}
+                src={inView && !reducedMotion && !saveData ? videoUrl(frame.src) : undefined}
+                poster={frame.poster ? imageUrl(frame.poster, 640) : undefined}
                 muted
                 loop
                 playsInline
@@ -131,14 +155,16 @@ export function RestaurantCarousel({ frames, variant, label }: Props) {
                 aria-label={frame.alt}
               />
             ) : (
-              <img
+              <ResponsiveImage
                 className={styles.image}
                 src={frame.src}
+                sizes={isStage ? restaurantGallerySizes(frame.src) : restaurantHeroSizes(frame.src)}
                 alt={active ? frame.alt : ""}
-                loading={frameIndex === 0 ? "eager" : "lazy"}
+                decoding="async"
+                loading="eager"
                 fetchPriority={frameIndex === 0 && !isStage ? "high" : undefined}
               />
-            )}
+            ))}
           </div>
         );
       })}
@@ -157,7 +183,7 @@ export function RestaurantCarousel({ frames, variant, label }: Props) {
         <button
           className={styles.arrow}
           type="button"
-          onClick={() => go(index - 1)}
+          onClick={() => go(requestedIndex - 1)}
           aria-label="Image précédente"
         >
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -188,7 +214,7 @@ export function RestaurantCarousel({ frames, variant, label }: Props) {
         <button
           className={styles.arrow}
           type="button"
-          onClick={() => go(index + 1)}
+          onClick={() => go(requestedIndex + 1)}
           aria-label="Image suivante"
         >
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">

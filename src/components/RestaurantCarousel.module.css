@@ -29,11 +29,16 @@
   inset: 0;
   opacity: 0;
   /* Durées pilotées par le composant : le héros va deux fois plus vite. */
-  transition: opacity var(--carousel-fade, 600ms) var(--ease-quart-out);
-  will-change: opacity;
+  transition: opacity var(--carousel-fade, 300ms) linear;
 }
 
 .frameActive {
+  z-index: 2;
+  opacity: 1;
+}
+
+.frame[data-outgoing] {
+  z-index: 1;
   opacity: 1;
 }
 

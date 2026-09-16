@@ -46,9 +46,10 @@
   --primary-color: #051528;
   --secondary-color: #262d39;
   --header-primary-color: #051528;
-  --ease-quart-out: cubic-bezier(0.26, 1.04, 0.54, 1);
-  --ease-expo-out: cubic-bezier(0.16, 1.08, 0.38, 0.98);
-  --ease-quint-out: cubic-bezier(0.22, 1.1, 0.48, 1);
+  --ease-quart-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-quint-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-cubic: cubic-bezier(0.645, 0.045, 0.355, 1);
   --ease-quint-in-out: cubic-bezier(0.84, 0, 0.16, 1);
   color-scheme: dark;
 }

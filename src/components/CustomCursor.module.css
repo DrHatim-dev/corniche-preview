@@ -7,21 +7,27 @@
   height: 40px;
   pointer-events: none;
   visibility: hidden;
+  mix-blend-mode: difference;
+  will-change: transform;
+}
+
+.cursor::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   border: 2px solid var(--warm-white);
   border-radius: 999px;
-  mix-blend-mode: difference;
   transform: translate3d(-50%, -50%, 0) scale(0.75);
   transition:
     opacity 180ms linear,
-    transform 300ms var(--ease-quart-out);
-  will-change: transform;
+    transform 150ms var(--ease-quart-out);
 }
 
 .visible {
   visibility: visible;
 }
 
-.active {
+.active::before {
   transform: translate3d(-50%, -50%, 0) scale(1);
 }
 

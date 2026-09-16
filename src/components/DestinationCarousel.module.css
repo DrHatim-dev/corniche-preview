@@ -7,12 +7,35 @@
   overflow: hidden;
   overscroll-behavior: none;
   color: var(--warm-white, #d5d4d4);
-  background-color: var(--carousel-secondary);
+  background-color: #0d0d0d;
+  touch-action: none;
+}
+
+.backgrounds {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+}
+
+.backgroundLayer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 300ms linear;
   background-image: url("/assets/corniche/library/corniche-global/996-motifcorniche-01.png");
   background-repeat: repeat;
   background-size: 300px 300px;
-  transition: background-color 450ms cubic-bezier(0.215, 0.61, 0.355, 1);
-  touch-action: none;
+}
+
+.backgroundLayer[data-active] {
+  z-index: 2;
+  opacity: 1;
+}
+
+.backgroundLayer[data-outgoing] {
+  z-index: 1;
+  opacity: 1;
 }
 
 .links {
@@ -84,7 +107,7 @@
 
 .images {
   position: absolute;
-  z-index: 0;
+  z-index: 1;
   top: 0;
   right: 0;
   bottom: 0;
@@ -99,10 +122,16 @@
   position: absolute;
   inset: 0;
   opacity: 0;
-  transition: opacity 420ms var(--ease-quint-out, cubic-bezier(0.22, 1.1, 0.48, 1));
+  transition: opacity 300ms linear;
 }
 
 .imageItem[data-active] {
+  z-index: 2;
+  opacity: 1;
+}
+
+.imageItem[data-outgoing] {
+  z-index: 1;
   opacity: 1;
 }
 
@@ -115,12 +144,12 @@
 
 .mediaFrame[data-state="current"] {
   z-index: 1;
-  animation: mediaFadeIn 480ms ease both;
+  animation: mediaFadeIn 300ms linear both;
 }
 
 .mediaFrame[data-state="outgoing"] {
   z-index: 0;
-  animation: mediaFadeOut 480ms ease both;
+  opacity: 1;
 }
 
 .mediaFrame[data-fit="contain"] {
@@ -229,6 +258,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .root,
+  .backgroundLayer,
   .link,
   .imageItem,
   .mediaFrame {

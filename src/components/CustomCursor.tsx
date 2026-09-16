@@ -1,75 +1,79 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./CustomCursor.module.css";
 
 export function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const pointer = useRef({ x: 0, y: 0 });
-  const current = useRef({ x: 0, y: 0 });
-  const frame = useRef<number | null>(null);
-  const previousTime = useRef<number | null>(null);
-  const visibleRef = useRef(false);
-  const [visible, setVisible] = useState(false);
-  const [active, setActive] = useState(false);
 
   useEffect(() => {
+    const node = cursorRef.current;
+    if (!node) return;
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (!finePointer.matches || reducedMotion.matches) return;
+    let frame = 0;
+    let previousTime = 0;
+    let visible = false;
+    let x = 0;
+    let y = 0;
+    let targetX = 0;
+    let targetY = 0;
 
     const tick = (time: number) => {
-      const node = cursorRef.current;
-      const previous = previousTime.current ?? time;
-      const delta = Math.min((time - previous) / 1000, 0.1);
+      frame = 0;
+      const delta = Math.min((time - previousTime) / 1000, 0.05);
+      previousTime = time;
       const blend = 1 - Math.exp(-50 * delta);
-      current.current.x += (pointer.current.x - current.current.x) * blend;
-      current.current.y += (pointer.current.y - current.current.y) * blend;
-      if (node) {
-        node.style.left = `${current.current.x}px`;
-        node.style.top = `${current.current.y}px`;
-      }
-      previousTime.current = time;
-      frame.current = requestAnimationFrame(tick);
+      x += (targetX - x) * blend;
+      y += (targetY - y) * blend;
+      const settled = Math.abs(targetX - x) + Math.abs(targetY - y) < 0.1;
+      if (settled) { x = targetX; y = targetY; }
+      node.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      if (!settled) frame = requestAnimationFrame(tick);
+    };
+
+    const hide = () => {
+      visible = false;
+      node.classList.remove(styles.visible);
+      cancelAnimationFrame(frame);
+      frame = 0;
     };
 
     const onMove = (event: PointerEvent) => {
-      pointer.current = { x: event.clientX, y: event.clientY };
-      if (!visibleRef.current) {
-        current.current = pointer.current;
-        visibleRef.current = true;
-        setVisible(true);
+      if (!finePointer.matches || reducedMotion.matches || document.hidden || event.pointerType === "touch") return;
+      targetX = event.clientX;
+      targetY = event.clientY;
+      if (!visible) {
+        x = targetX;
+        y = targetY;
+        node.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        node.classList.add(styles.visible);
+        visible = true;
       }
       const element = event.target instanceof Element ? event.target : null;
-      setActive(Boolean(element?.closest("a, button, [role='button']")));
+      node.classList.toggle(styles.active, Boolean(element?.closest("a, button, [role='button']")));
+      if (!frame) {
+        previousTime = performance.now();
+        frame = requestAnimationFrame(tick);
+      }
     };
 
-    const onLeave = () => {
-      visibleRef.current = false;
-      setVisible(false);
-    };
     window.addEventListener("pointermove", onMove, { passive: true });
-    document.documentElement.addEventListener("mouseleave", onLeave);
-    frame.current = requestAnimationFrame(tick);
-
+    window.addEventListener("blur", hide);
+    document.documentElement.addEventListener("mouseleave", hide);
+    document.addEventListener("visibilitychange", hide);
+    finePointer.addEventListener("change", hide);
+    reducedMotion.addEventListener("change", hide);
     return () => {
+      hide();
       window.removeEventListener("pointermove", onMove);
-      document.documentElement.removeEventListener("mouseleave", onLeave);
-      if (frame.current !== null) cancelAnimationFrame(frame.current);
+      window.removeEventListener("blur", hide);
+      document.documentElement.removeEventListener("mouseleave", hide);
+      document.removeEventListener("visibilitychange", hide);
+      finePointer.removeEventListener("change", hide);
+      reducedMotion.removeEventListener("change", hide);
     };
   }, []);
 
-  return (
-    <div
-      aria-hidden="true"
-      className={[
-        styles.cursor,
-        visible ? styles.visible : "",
-        active ? styles.active : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      ref={cursorRef}
-    />
-  );
+  return <div aria-hidden="true" className={styles.cursor} ref={cursorRef} />;
 }

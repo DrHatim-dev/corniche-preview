@@ -42,9 +42,9 @@
   justify-content: center;
   background: var(--business-primary);
   transition:
-    background-color 1s
+    background-color 200ms
       var(--ease-quint-out, cubic-bezier(0.22, 1.1, 0.48, 1)),
-    transform 500ms
+    transform 200ms
       var(--ease-expo-out, cubic-bezier(0.16, 1.08, 0.38, 0.98));
   will-change: transform;
 }
@@ -56,7 +56,7 @@
   background: var(--business-primary);
   content: "";
   transform: translateY(calc(100% - 1px));
-  transition: background-color 1s
+  transition: background-color 200ms
     var(--ease-quint-out, cubic-bezier(0.22, 1.1, 0.48, 1));
 }
 
@@ -64,7 +64,7 @@
   position: relative;
   z-index: 1;
   display: block;
-  transition: transform 500ms var(--ease-expo-out, cubic-bezier(0.16, 1.08, 0.38, 0.98));
+  transition: transform 200ms var(--ease-expo-out, cubic-bezier(0.16, 1.08, 0.38, 0.98));
   will-change: transform;
 }
 

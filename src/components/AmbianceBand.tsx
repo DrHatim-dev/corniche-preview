@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GalleryFrame } from "@/content/restaurants";
 import styles from "./AmbianceBand.module.css";
+import useMotionEnvironment from "@/hooks/useMotionEnvironment";
+import { imageUrl, videoUrl } from "@/lib/media";
 
 type Props = {
   clip: GalleryFrame;
@@ -18,30 +20,34 @@ type Props = {
  */
 export function AmbianceBand({ clip, tagline, hours }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [inView, setInView] = useState(false);
+  const [nearView, setNearView] = useState(false);
+  const { reducedMotion, visible, saveData } = useMotionEnvironment();
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return; // l’affiche suffit
-    }
-
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          const attempt = video.play();
-          if (attempt) attempt.catch(() => undefined);
-        } else {
-          video.pause();
-        }
-      },
+      ([entry]) => setInView(entry.isIntersecting),
       { threshold: 0.25 },
     );
-
+    const warmObserver = new IntersectionObserver(
+      ([entry]) => setNearView(entry.isIntersecting),
+      { rootMargin: "240px" },
+    );
     observer.observe(video);
-    return () => observer.disconnect();
+    warmObserver.observe(video);
+    return () => { observer.disconnect(); warmObserver.disconnect(); };
   }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (nearView && inView && visible && !reducedMotion && !saveData) {
+      video.play().catch(() => undefined);
+    } else video.pause();
+  }, [inView, nearView, visible, reducedMotion, saveData]);
 
   return (
     <section className={styles.root} aria-label={clip.alt}>
@@ -49,8 +55,8 @@ export function AmbianceBand({ clip, tagline, hours }: Props) {
         <video
           className={styles.video}
           ref={videoRef}
-          src={clip.src}
-          poster={clip.poster}
+          src={nearView && !reducedMotion && !saveData ? videoUrl(clip.src) : undefined}
+          poster={nearView && clip.poster ? imageUrl(clip.poster, 640) : undefined}
           muted
           loop
           playsInline
