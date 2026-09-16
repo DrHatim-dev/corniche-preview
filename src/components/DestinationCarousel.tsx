@@ -275,6 +275,8 @@ export function DestinationCarousel({
   lockedRef.current = interactionLocked;
 
   const moveByOne = useCallback((direction: 1 | -1) => {
+    // A key can arrive before the media-query change event is delivered.
+    reducedMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     targetProgressRef.current =
       (Math.round(targetProgressRef.current * DESTINATIONS.length) - direction) / DESTINATIONS.length;
 
@@ -397,7 +399,7 @@ export function DestinationCarousel({
         targetProgressRef.current = snappedProgress;
         currentProgressRef.current = snappedProgress;
         applyProgress(snappedProgress);
-      }
+      } else wake();
     };
 
     const onWheel = (event: WheelEvent) => {
