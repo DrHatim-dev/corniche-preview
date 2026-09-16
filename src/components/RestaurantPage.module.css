@@ -39,19 +39,48 @@
   opacity: 0.7;
 }
 
-/* Hero — les photos fournies sont toutes en portrait : on cadre en cover
-   sur une hauteur généreuse plutôt qu’un bandeau large qui les massacrerait.
-   Le contenu est un carrousel en fondu (RestaurantCarousel, variante hero). */
+/* Curated landscape originals on desktop, art-directed portraits on mobile.
+   Cap the display width at the actual source width instead of upscaling it. */
 .hero {
   position: relative;
-  height: min(92vh, 900px);
-  margin-top: -74px;
+  width: 100%;
+  max-width: var(--hero-max-width, 1920px);
+  aspect-ratio: var(--hero-aspect-ratio, 16 / 9);
+  max-height: min(84svh, 900px);
+  margin: -74px auto 0;
   overflow: hidden;
+  isolation: isolate;
+}
+
+.heroMedia {
+  position: absolute;
+  inset: 0;
+}
+
+.heroImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--hero-position, 50% 50%);
+}
+
+@media (max-width: 699px) {
+  .hero {
+    aspect-ratio: 4 / 5;
+    max-height: none;
+  }
+
+  .heroImage {
+    object-position: var(--hero-mobile-position, 50% 50%);
+  }
 }
 
 .heroVeil {
   position: absolute;
+  z-index: 1;
   inset: 0;
+  pointer-events: none;
   background: linear-gradient(
     to bottom,
     rgba(13, 13, 13, 0.55) 0%,
@@ -63,8 +92,9 @@
 
 .heroText {
   position: absolute;
+  z-index: 2;
   right: 24px;
-  bottom: 48px;
+  bottom: clamp(32px, 3.33vw, 48px);
   left: 24px;
   text-align: center;
 }

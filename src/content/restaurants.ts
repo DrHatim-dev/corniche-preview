@@ -21,7 +21,12 @@ export type GalleryFrame = {
 
 export type RestaurantPageContent = {
   slug: string;
-  hero: GalleryFrame;
+  /** Curated photography only: gallery/social thumbnails must never become heroes. */
+  hero: Pick<GalleryFrame, "src" | "alt"> & {
+    mobileSrc?: string;
+    position?: string;
+    mobilePosition?: string;
+  };
   gallery: readonly GalleryFrame[];
   /** Bande pleine largeur entre le texte et la galerie. Absente si pas de clip. */
   ambiance?: GalleryFrame;
@@ -42,7 +47,8 @@ export const restaurantPages: readonly RestaurantPageContent[] = [
   {
     slug: "marion",
     hero: {
-      src: base("marion", "hero.jpg"),
+      src: "/assets/corniche/library/marion/911-med_2106.jpg",
+      mobileSrc: base("marion", "hero.jpg"),
       alt: "Salon du Marion ouvert sur l’océan",
     },
     ambiance: clip("marion", "ambiance", "Le Marion et sa vue sur l’Atlantique"),
@@ -64,8 +70,9 @@ export const restaurantPages: readonly RestaurantPageContent[] = [
   {
     slug: "sunset",
     hero: {
-      src: base("sunset", "hero.jpg"),
-      alt: "Terrasse du Sunset face à l’Atlantique",
+      src: "/assets/corniche/library/sunset/1065-sunset-bg-slider.jpg",
+      mobileSrc: base("sunset", "hero.jpg"),
+      alt: "Cocktails et table ensoleillée au Sunset",
     },
     ambiance: clip("sunset", "ambiance", "La terrasse du Sunset face à l’océan"),
     gallery: [
@@ -84,8 +91,9 @@ export const restaurantPages: readonly RestaurantPageContent[] = [
   {
     slug: "aiku",
     hero: {
-      src: base("aiku", "hero.jpg"),
-      alt: "Salle d’Aï-Ku ouverte sur l’océan",
+      src: "/assets/corniche/library/aiku/1021-med_5008.jpg",
+      mobileSrc: base("aiku", "01.jpg"),
+      alt: "Salon d’Aï-Ku, lanternes et boiseries japonaises",
     },
     ambiance: clip("aiku", "ambiance", "Les façades lumineuses d’Aï-Ku à la nuit tombée"),
     gallery: [
@@ -105,8 +113,9 @@ export const restaurantPages: readonly RestaurantPageContent[] = [
   {
     slug: "mesanueva",
     hero: {
-      src: base("mesanueva", "hero.jpg"),
-      alt: "Table de Mesanueva face à la mer",
+      src: "/assets/corniche/library/mesanueva/1098-mesanueva.jpg",
+      mobilePosition: "20% 50%",
+      alt: "Salle de Mesanueva, banquettes et luminaires tressés",
     },
     ambiance: clip("mesanueva", "ambiance", "Cuisson à la flamme chez Mesanueva"),
     gallery: [
@@ -129,7 +138,8 @@ export const restaurantPages: readonly RestaurantPageContent[] = [
   {
     slug: "amoramor",
     hero: {
-      src: base("amoramor", "hero.jpg"),
+      src: "/assets/corniche/library/amoramor/1045-couv-amor-corniche.jpg",
+      mobileSrc: base("amoramor", "hero.jpg"),
       alt: "Salle d’Amor & Amor aux velours rouges",
     },
     ambiance: clip("amoramor", "ambiance", "Mezzés et thé servis chez Amor & Amor"),
@@ -149,8 +159,10 @@ export const restaurantPages: readonly RestaurantPageContent[] = [
   {
     slug: "louna",
     hero: {
-      src: base("louna", "hero.jpg"),
-      alt: "Tableau du cabaret Louna",
+      src: "/assets/corniche/library/louna/841-louna.jpg",
+      mobileSrc: base("louna", "01.jpg"),
+      mobilePosition: "50% 35%",
+      alt: "L’univers du cabaret Louna Music Hall",
     },
     ambiance: clip("louna", "ambiance", "Le cabaret Louna en scène"),
     gallery: [

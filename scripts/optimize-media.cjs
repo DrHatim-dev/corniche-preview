@@ -15,6 +15,8 @@ sharp.concurrency(2);
 
 async function main() {
   const sources = new Set();
+  const heroSources = new Set();
+  const desktopHeroSources = new Set();
   const collect = value => {
     if (typeof value === 'string' && /^\/(assets|images)\/.*\.(png|jpe?g|webp|mp4)$/i.test(value) && !value.includes('${')) sources.add(value);
     else if (Array.isArray(value)) value.forEach(collect);
@@ -26,6 +28,13 @@ async function main() {
     const module = new Module(filename);
     module._compile(compiled, filename);
     collect(module.exports);
+    if (name === 'restaurants') {
+      for (const page of module.exports.restaurantPages) {
+        heroSources.add(page.hero.src);
+        desktopHeroSources.add(page.hero.src);
+        if (page.hero.mobileSrc) heroSources.add(page.hero.mobileSrc);
+      }
+    }
   }
   const files = cp.execFileSync('git', ['ls-files', 'src'], { cwd: root, encoding: 'utf8' }).trim().split(/\r?\n/);
   for (const file of files) {
@@ -38,7 +47,8 @@ async function main() {
   for (const src of [...sources].sort()) {
     const original = path.join(publicRoot, src);
     const data = await fs.readFile(original);
-    const id = crypto.createHash('sha256').update(data).update('corniche-web-v1').digest('hex').slice(0, 12);
+    const isHero = heroSources.has(src);
+    const id = crypto.createHash('sha256').update(data).update(isHero ? 'corniche-hero-v2-q85' : 'corniche-web-v1').digest('hex').slice(0, 12);
     if (src.endsWith('.mp4')) {
       if (!ffmpeg) throw new Error('Set CORNICHE_FFMPEG to a local FFmpeg executable.');
       const target = path.join(generated, 'videos', id + '.mp4');
@@ -56,11 +66,14 @@ async function main() {
     const rotated = meta.orientation >= 5 && meta.orientation <= 8;
     const width = rotated ? meta.height : meta.width;
     const height = rotated ? meta.width : meta.height;
-    const variants = [...new Set(widths.map(w => Math.min(w, width)))];
+    if (desktopHeroSources.has(src) && (width < 1400 || width / height < 1.4)) {
+      throw new Error(`Desktop hero needs a landscape original at least 1400px wide: ${src} (${width}x${height})`);
+    }
+    const variants = [...new Set((isHero ? [...widths, 2560, 3200] : widths).map(w => Math.min(w, width)))];
     for (const variantWidth of variants) {
       const target = path.join(generated, 'images', `${id}-${variantWidth}.webp`);
       try { await fs.access(target); } catch {
-        await sharp(data).rotate().resize({ width: variantWidth, withoutEnlargement: true }).webp({ quality: meta.hasAlpha ? 88 : 78, effort: 5 }).toFile(target);
+        await sharp(data).rotate().resize({ width: variantWidth, withoutEnlargement: true }).webp({ quality: meta.hasAlpha ? 88 : isHero ? 85 : 78, effort: 5 }).toFile(target);
       }
       const bytes = (await fs.stat(target)).size;
       summary.variantsBytes += bytes;

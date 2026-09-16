@@ -1,9 +1,11 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { AmbianceBand } from "@/components/AmbianceBand";
 import { CustomCursor } from "@/components/CustomCursor";
 import { RestaurantCarousel } from "@/components/RestaurantCarousel";
 import { experiences, site } from "@/content/corniche";
 import { getRestaurantPage } from "@/content/restaurants";
+import { coverImageSizes, responsiveImage, restaurantHeroSizes } from "@/lib/media";
 import styles from "./RestaurantPage.module.css";
 
 type Props = {
@@ -18,14 +20,16 @@ export function RestaurantPage({ slug }: Props) {
     throw new Error(`Adresse inconnue : ${slug}`);
   }
 
-  // Le héros tourne sur les vues de salle les plus fortes ; la galerie
-  // déroule l’ensemble de la sélection.
-  // Photos uniquement au héros : c’est le premier affichage, une vidéo y
-  // pèserait sur le chargement et doublonnerait avec la galerie.
-  const heroFrames = [
-    page.hero,
-    ...page.gallery.filter((frame) => frame.type !== "video").slice(0, 3),
-  ];
+  // A stable, art-directed hero. Portrait gallery images are not wide banners.
+  const hero = responsiveImage(page.hero.src, restaurantHeroSizes(page.hero.src));
+  const mobileSrc = page.hero.mobileSrc ?? page.hero.src;
+  const mobileHero = responsiveImage(mobileSrc, coverImageSizes(mobileSrc, "100vw", "125vw"));
+  const heroStyle = {
+    "--hero-max-width": `${Math.min(hero.width ?? 1920, 1920)}px`,
+    "--hero-aspect-ratio": `${hero.width ?? 16} / ${hero.height ?? 9}`,
+    "--hero-position": page.hero.position ?? "50% 50%",
+    "--hero-mobile-position": page.hero.mobilePosition ?? "50% 50%",
+  } as CSSProperties;
 
   return (
     <main className={styles.root}>
@@ -48,12 +52,24 @@ export function RestaurantPage({ slug }: Props) {
         </a>
       </header>
 
-      <div className={styles.hero}>
-        <RestaurantCarousel
-          frames={heroFrames}
-          variant="hero"
-          label={`${experience.name} en images`}
-        />
+      <div className={styles.hero} style={heroStyle}>
+        <picture className={styles.heroMedia}>
+          <source
+            media="(max-width: 699px)"
+            srcSet={mobileHero.srcSet ?? mobileHero.src}
+            sizes={mobileHero.sizes}
+            width={mobileHero.width}
+            height={mobileHero.height}
+          />
+          <img
+            {...hero}
+            className={styles.heroImage}
+            alt={page.hero.alt}
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
+          />
+        </picture>
         <div className={styles.heroVeil} aria-hidden="true" />
         <div className={styles.heroText}>
           <h1 className={styles.name}>{experience.name}</h1>

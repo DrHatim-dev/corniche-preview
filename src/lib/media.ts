@@ -18,7 +18,8 @@ export function destinationImageSizes(src: string) {
 }
 
 export function restaurantHeroSizes(src: string) {
-  return coverImageSizes(src, "100vw", "min(92vh, 900px)");
+  // Desktop heroes never exceed the source's native width or 1920 CSS pixels.
+  return `min(100vw, ${Math.min(images[src]?.[1] ?? 1920, 1920)}px)`;
 }
 
 export function restaurantGallerySizes(src: string) {
